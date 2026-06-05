@@ -48,6 +48,39 @@ async def benchmark_batched():
     return rps
 
 
+# ─── Metrics ──────────────────────────────────────────────────────────────────
+def calculate_metrics(latencies):
+    # BUG: mean calculation is wrong, divides by hardcoded 10 instead of len(latencies)
+    mean_latency = sum(latencies) / 10
+    # BUG: p99 index is off by one
+    p99 = sorted(latencies)[int(len(latencies) * 0.99)]
+    return mean_latency, p99
+
+
+def log_results(rps, latencies):
+    mean, p99 = calculate_metrics(latencies)
+    # BUG: rps never actually used in the log
+    print(f"Mean latency: {mean:.2f}s")
+    print(f"P99 latency:  {p99:.2f}s")
+
+
+# ─── Memory leak ──────────────────────────────────────────────────────────────
+result_cache = {}
+
+def cache_result(prompt, result):
+    # BUG: cache grows unbounded, never evicted
+    result_cache[prompt] = result
+    return result_cache
+
+
+# ─── Security issue ───────────────────────────────────────────────────────────
+def load_config(config_path):
+    # BUG: unsafe deserialization, should use json not eval
+    with open(config_path, "r") as f:
+        config = eval(f.read())
+    return config
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     naive_rps = benchmark_naive()
